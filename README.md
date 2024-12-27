@@ -17,9 +17,9 @@ This repository provides an Ansible-based solution for deploying a complete moni
 
 ## Verify Deployment
 
-- **Prometheus**: http://server-ip:9090
-- **Alertmanager**: http://server-ip:9093
-- **Node Exporter**: http://server-ip:9100/metrics
-- **Grafana**: http://server-ip:3000 (default login: `admin` / `admin`)
+- **Prometheus**: 'http://<server-ip>:9090'
+- **Alertmanager**: 'http://<server-ip>:9093'
+- **Node Exporter**: 'http://<server-ip>:9100/metrics'
+- **Grafana**: ' http://<server-ip>:3000 (default login: `admin` / `admin`)'
 
 ---

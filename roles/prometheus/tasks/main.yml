@@ -1,0 +1,98 @@
+# tasks file for Prometheus
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - wget
+    - tar
+    - gzip
+
+- name: Create Prometheus group
+  ansible.builtin.group:
+    name: prometheus
+    state: present
+    system: yes
+
+- name: Create Prometheus user
+  ansible.builtin.user:
+    name: prometheus
+    group: prometheus
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
+- name: Download Prometheus binary
+  get_url:
+    url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+
+- name: Extract Prometheus binary
+  unarchive:
+    src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+    dest: /tmp/
+    remote_src: yes
+
+- name: Move Prometheus binary to /usr/local/bin
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+    dest: "/usr/local/bin/prometheus"
+    remote_src: yes
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+
+- name: Create Prometheus directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+  loop:
+    - /etc/prometheus
+    - /var/lib/prometheus
+
+- name: Copy Prometheus configuration file
+  ansible.builtin.template:
+    src: templates/prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+
+- name: Copy Prometheus alert rules file
+  ansible.builtin.copy:
+    src: files/rules.yml
+    dest: /etc/prometheus/rules.yml
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+
+- name: Copy Prometheus systemd service file
+  ansible.builtin.copy:
+    src: files/prometheus.service
+    dest: /etc/systemd/system/prometheus.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Start and enable Prometheus service
+  ansible.builtin.systemd:
+    name: prometheus
+    state: started
+    enabled: yes
+
+- name: Verify Prometheus is accessible on localhost:9090
+  ansible.builtin.uri:
+    url: http://localhost:9090
+    status_code: 200

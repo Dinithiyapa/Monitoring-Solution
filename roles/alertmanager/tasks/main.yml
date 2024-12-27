@@ -1,0 +1,88 @@
+
+# tasks file for alertmanager
+---
+- name: Create alertmanager group
+  ansible.builtin.group:
+    name: alertmanager
+    state: present
+    system: yes
+
+- name: Create alertmanager user
+  ansible.builtin.user:
+    name: alertmanager
+    group: alertmanager
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
+- name: Download Alertmanager
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/alertmanager.tar.gz"
+
+- name: Extract Alertmanager binary
+  ansible.builtin.unarchive:
+    src: "/tmp/alertmanager.tar.gz"
+    dest: "/tmp/"
+    remote_src: yes
+
+- name: Move Alertmanager binary to /usr/local/bin
+  ansible.builtin.copy:
+    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64/alertmanager"
+    dest: "/usr/local/bin/alertmanager"
+    remote_src: yes
+    owner: alertmanager
+    group: alertmanager
+    mode: "0755"
+
+- name: Delete Alertmanager temporary files
+  ansible.builtin.file:
+    path: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64"
+    state: absent
+
+- name: Create Alertmanager data directory
+  ansible.builtin.file:
+    path: /var/lib/alertmanager
+    state: directory
+    owner: alertmanager
+    group: alertmanager
+    mode: "0755"
+
+- name: Create Alertmanager config directory
+  ansible.builtin.file:
+    path: /etc/alertmanager
+    state: directory
+    owner: alertmanager
+    group: alertmanager
+    mode: "0755"
+
+- name: Copy Alertmanager configuration file
+  ansible.builtin.template:
+    src: templates/alertmanager.yml.j2
+    dest: /etc/alertmanager/alertmanager.yml
+    owner: alertmanager
+    group: alertmanager
+    mode: "0644"
+
+- name: Copy Alertmanager systemd service file
+  ansible.builtin.copy:
+    src: files/alertmanager.service
+    dest: /etc/systemd/system/alertmanager.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Start and enable Alertmanager service
+  ansible.builtin.systemd:
+    name: alertmanager
+    state: started
+    enabled: yes
+
+- name: Check if Alertmanager is accessible
+  ansible.builtin.uri:
+    url: http://localhost:9093
+    status_code: 200

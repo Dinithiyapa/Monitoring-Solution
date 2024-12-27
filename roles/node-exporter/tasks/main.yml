@@ -1,0 +1,64 @@
+
+# tasks file for node-exporter
+---
+- name: Create node_exporter group
+  ansible.builtin.group:
+    name: node_exporter
+    state: present
+    system: yes
+
+- name: Create node_exporter user
+  ansible.builtin.user:
+    name: node_exporter
+    group: node_exporter
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
+- name: Download Prometheus Node Exporter
+  get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/node_exporter-{{ node_exporter_version }}.tar.gz"
+
+- name: Extract Prometheus Node Exporter
+  unarchive:
+    src: "/tmp/node_exporter-{{ node_exporter_version }}.tar.gz"
+    dest: /tmp/
+    remote_src: yes
+
+- name: Move Node Exporter binary to /usr/local/bin
+  ansible.builtin.copy:
+    src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: /usr/local/bin/node_exporter
+    remote_src: yes
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Delete Node Exporter temporary files
+  ansible.builtin.file:
+    path: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64"
+    state: absent
+
+- name: Copy Node Exporter systemd service file
+  ansible.builtin.copy:
+    src: files/node_exporter.service
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Start and enable Node Exporter service
+  ansible.builtin.systemd:
+    name: node_exporter
+    state: started
+    enabled: yes
+
+- name: Check if Node Exporter emits metrics
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9100/metrics
+    status_code: 200

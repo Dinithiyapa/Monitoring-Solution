@@ -1,0 +1,17 @@
+---
+# vars file for prometheus
+# vars/main.yml
+
+# Service Metadata
+serviceName: "prometheus"
+userId: "prometheus"
+groupId: "prometheus"
+
+# Service Execution
+exec_command: "--config.file=/etc/prometheus/prometheus.yml \
+               --storage.tsdb.path=/data/prometheus \
+               --storage.tsdb.retention=2d"
+
+# Version Specification
+prometheus_version: "2.3.2"
+

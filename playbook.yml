@@ -8,3 +8,4 @@
     - node-exporter
     - grafana-server
     - alertmanager
+    - docker_nginx_setup
